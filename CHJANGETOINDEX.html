@@ -83,39 +83,3 @@
       <img src="SCOPE.png" alt="Scope Logo">
     </div>
   </div>
-
-  <!-- SEARCH -->
-  <div class="card">
-    <h1>PWS</h1>
-    <div class="gcse-search"></div>
-  </div>
-
-  <!-- EMBED CONTROLS -->
-  <div class="card">
-    <h3>Embed Viewer</h3>
-
-    <input id="urlInput" placeholder="Enter URL (example.com or https://example.com)">
-    <button onclick="loadSite()">Load Site</button>
-  </div>
-
-  <!-- EMBED FRAME -->
-  <div class="card">
-    <iframe id="viewer"></iframe>
-  </div>
-
-  <!-- JS (CORRECTLY PLACED) -->
-  <script>
-    function loadSite() {
-      let url = document.getElementById("urlInput").value.trim();
-
-      if (!url) return;
-
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        url = "https://" + url;
-      }
-
-      document.getElementById("viewer").src = url;
-    }
-  </script>
-
-</body>
