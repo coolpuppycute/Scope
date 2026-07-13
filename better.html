@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Time Passcode Mockup</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+}
+
+body{
+    background:#111;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.phone{
+    width:390px;
+    height:844px;
+    background:#000;
+    border-radius:45px;
+    overflow:hidden;
+    border:10px solid #222;
+    position:relative;
+    color:white;
+}
+
+.topbar{
+    height:95px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+    font-size:22px;
+    position:relative;
+}
+
+.cancel{
+    position:absolute;
+    right:25px;
+    color:#0A84FF;
+    font-weight:500;
+}
+
+.content{
+    text-align:center;
+    margin-top:120px;
+}
+
+.content h2{
+    font-size:38px;
+    font-weight:600;
+}
+
+.dots{
+    display:flex;
+    justify-content:center;
+    gap:24px;
+    margin-top:45px;
+}
+
+.dot{
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    border:2px solid white;
+}
+
+.filled{
+    background:white;
+}
+
+#revealedCode{
+    margin-top:40px;
+    font-size:36px;
+    font-weight:600;
+    letter-spacing:8px;
+    color:white;
+    min-height:45px;
+}
+
+.keypad{
+    position:absolute;
+    bottom:30px;
+    left:0;
+    right:0;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    padding:0 20px;
+}
+
+.key{
+    height:76px;
+    background:#5A5A5A;
+    border-radius:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:36px;
+    cursor:pointer;
+    user-select:none;
+    transition:.1s;
+}
+
+.key:active{
+    background:#777;
+}
+
+.zero{
+    grid-column:2;
+}
+
+.back{
+    grid-column:3;
+    font-size:30px;
+}
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+    <div class="topbar">
+        Turn Off Passcode
+        <div class="cancel">Cancel</div>
+    </div>
+
+    <div class="content">
+        <h2>Enter Screen Time Passcode</h2>
+
+        <div class="dots">
+            <div class="dot" id="d1"></div>
+            <div class="dot" id="d2"></div>
+            <div class="dot" id="d3"></div>
+            <div class="dot" id="d4"></div>
+        </div>
+
+        <div id="revealedCode"></div>
+    </div>
+
+    <div class="keypad">
+        <div class="key">1</div>
+        <div class="key">2</div>
+        <div class="key">3</div>
+
+        <div class="key">4</div>
+        <div class="key">5</div>
+        <div class="key">6</div>
+
+        <div class="key">7</div>
+        <div class="key">8</div>
+        <div class="key">9</div>
+
+        <div></div>
+        <div class="key zero">0</div>
+        <div class="key back">⌫</div>
+    </div>
+
+</div>
+
+<script>
+let entered = "";
+
+const dots = [
+    document.getElementById("d1"),
+    document.getElementById("d2"),
+    document.getElementById("d3"),
+    document.getElementById("d4")
+];
+
+const reveal = document.getElementById("revealedCode");
+
+function updateDots(){
+    dots.forEach((dot,i)=>{
+        dot.classList.toggle("filled", i < entered.length);
+    });
+}
+
+document.querySelectorAll(".key").forEach(key=>{
+    key.onclick = () => {
+
+        // Ignore input while waiting
+        if (entered.length === 4) return;
+
+        const value = key.textContent.trim();
+
+        if(value === "⌫"){
+            entered = entered.slice(0,-1);
+        }else{
+            entered += value;
+        }
+
+        if(entered.length > 4)
+            entered = entered.slice(0,4);
+
+        updateDots();
+
+        if(entered.length === 4){
+
+            // Wait 5 seconds...
+            setTimeout(()=>{
+
+                // Show the entered code
+                reveal.textContent = entered;
+
+                // Clear after another 2 seconds
+                setTimeout(()=>{
+                    entered = "";
+                    reveal.textContent = "";
+                    updateDots();
+                },2000);
+
+            },5000);
+
+        }
+
+    };
+});
+</script>
+
+</body>
+</html>
