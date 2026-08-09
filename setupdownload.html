@@ -103,6 +103,73 @@
       color: #7ee787;
       display: none;
     }
+    .os-group {
+      margin-bottom: 10px;
+      border: 1px solid #262a33;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .os-group summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      background: #12151b;
+      font-weight: bold;
+      font-size: 14px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .os-group summary::-webkit-details-marker {
+      display: none;
+    }
+    .os-group summary::after {
+      content: "+";
+      color: #676d7a;
+      font-weight: normal;
+    }
+    .os-group[open] summary::after {
+      content: "–";
+    }
+    .os-group-count {
+      font-size: 12px;
+      color: #676d7a;
+      font-weight: normal;
+      margin-left: 8px;
+    }
+    .os-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px;
+    }
+    .os-btn {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #2a2f3a;
+      background: #1a1d24;
+      color: #eaeaea;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: Arial, sans-serif;
+    }
+    .os-btn:hover {
+      border-color: #4c7dff;
+    }
+    .os-btn.selected {
+      background: #4c7dff;
+      border-color: #4c7dff;
+      color: white;
+    }
+    .os-selected-line {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #a7adba;
+    }
+    .os-selected-line span {
+      color: #eaeaea;
+      font-weight: bold;
+    }
   </style>
   <!-- Google CSE -->
   <script async src="https://cse.google.com/cse.js?cx=701a8b0d424fb4d14"></script>
@@ -116,7 +183,63 @@
   </div>
 
   <div class="card">
+    <h2 style="margin-top:0;">What are you installing on?</h2>
+    <div id="selectedOsLine" class="os-selected-line">Selected: <span id="selectedOsLabel">none yet</span></div>
+
+    <details class="os-group" open>
+      <summary>Windows<span class="os-group-count">3</span></summary>
+      <div class="os-buttons">
+        <button class="os-btn" onclick="selectOS(this,'Windows 11')">Windows 11</button>
+        <button class="os-btn" onclick="selectOS(this,'Windows 10')">Windows 10</button>
+        <button class="os-btn" onclick="selectOS(this,'Windows 8/8.1')">Windows 8/8.1</button>
+      </div>
+    </details>
+
+    <details class="os-group">
+      <summary>Apple<span class="os-group-count">3</span></summary>
+      <div class="os-buttons">
+        <button class="os-btn" onclick="selectOS(this,'macOS Golden Gate')">macOS Golden Gate</button>
+        <button class="os-btn" onclick="selectOS(this,'macOS Tahoe')">macOS Tahoe</button>
+        <button class="os-btn" onclick="selectOS(this,'macOS Sequoia')">macOS Sequoia</button>
+      </div>
+    </details>
+
+    <details class="os-group">
+      <summary>Linux<span class="os-group-count">8</span></summary>
+      <div class="os-buttons">
+        <button class="os-btn" onclick="selectOS(this,'Unlisted Linux Install')">Unlisted Linux Install</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux Ubuntu')">Linux Ubuntu</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux Debian')">Linux Debian</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux Arch')">Linux Arch</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux Kernel')">Linux Kernel</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux Fedora')">Linux Fedora</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux Mint')">Linux Mint</button>
+        <button class="os-btn" onclick="selectOS(this,'Linux openSUSE')">Linux openSUSE</button>
+      </div>
+    </details>
+
+    <details class="os-group">
+      <summary>Terminal<span class="os-group-count">3</span></summary>
+      <div class="os-buttons">
+        <button class="os-btn" onclick="selectOS(this,'WIN BASH')">WIN BASH</button>
+        <button class="os-btn" onclick="selectOS(this,'MAC BASH')">MAC BASH</button>
+        <button class="os-btn" onclick="selectOS(this,'LINUX BASH')">LINUX BASH</button>
+      </div>
+    </details>
+
+    <details class="os-group">
+      <summary>Chrome OS<span class="os-group-count">1</span></summary>
+      <div class="os-buttons">
+        <button class="os-btn" onclick="selectOS(this,'Chrome OS')">Chrome OS</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
     <h2 style="margin-top:0;">Let's set up your install of Night Mode.</h2>
+
+    <div id="selectedOsLine2" class="os-selected-line">Installing for: <span id="wizardOsLabel">none selected — pick one above</span></div>
+    <div class="hint" id="wizardOsHint"></div>
 
     <label for="adapterName">Wi-Fi adapter name (optional)</label>
     <input type="text" id="adapterName" placeholder="Leave blank to auto-detect">
@@ -141,6 +264,27 @@
   </div>
 
   <script>
+    let selectedOS = null;
+
+    const WINDOWS_OS = new Set(['Windows 11', 'Windows 10', 'Windows 8/8.1', 'WIN BASH']);
+
+    function selectOS(btn, name) {
+      document.querySelectorAll('.os-btn.selected').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedOS = name;
+      document.getElementById('selectedOsLabel').textContent = name;
+
+      const wizardLabel = document.getElementById('wizardOsLabel');
+      const wizardHint = document.getElementById('wizardOsHint');
+      wizardLabel.textContent = name;
+
+      if (WINDOWS_OS.has(name)) {
+        wizardHint.textContent = '';
+      } else {
+        wizardHint.textContent = 'Heads up: the generated Night_Mode.py is PowerShell-based and built for Windows. It won\'t run as-is on ' + name + '.';
+      }
+    }
+
     function pyStringLiteral(s) {
       // Safely embed arbitrary user text as a single-line Python string literal.
       return '"' + String(s)
@@ -150,6 +294,18 @@
     }
 
     function generateNightMode() {
+      if (!selectedOS) {
+        alert('Pick your OS above first.');
+        return;
+      }
+      if (!WINDOWS_OS.has(selectedOS)) {
+        const proceed = confirm(
+          'Night_Mode.py is PowerShell-based and only runs on Windows. ' +
+          selectedOS + ' isn\'t supported yet -- generate the Windows version anyway?'
+        );
+        if (!proceed) return;
+      }
+
       const adapterName = document.getElementById('adapterName').value.trim();
       const timeoutSecs = parseInt(document.getElementById('timeoutSecs').value, 10) || 25;
       const enableHotspot = document.getElementById('enableHotspot').checked;
@@ -164,7 +320,7 @@
 
       const script = `"""
 Randomizes your MAC address${enableHotspot ? ", enables Windows 11 Mobile Hotspot," : ""} and shows a popup.
-Generated by the Scope Night Mode setup wizard.
+Generated by the Scope Night Mode setup wizard for: ${selectedOS}.
 
 REQUIREMENTS:
 - Run as Administrator (right-click -> Run as administrator, or launch from an
@@ -302,4 +458,5 @@ if __name__ == "__main__":
     }
   </script>
 </body>
+</html>
 </html>
