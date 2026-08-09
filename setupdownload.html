@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Scope</title>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,38 +10,32 @@
       margin: 0;
       padding: 20px;
     }
-
     .header {
       display: flex;
       align-items: center;
       gap: 12px;
       margin-bottom: 20px;
     }
-
     .logo {
   height: auto;
   width: auto;
   max-height: 200px;
 }
-
     .logo img {
      height: auto;
   width: auto;
   max-height: 200px;
 }
-
     h1 {
       font-size: 22px;
       margin: 0;
     }
-
     .card {
       background: #1a1d24;
       padding: 15px;
       border-radius: 10px;
       margin-bottom: 15px;
     }
-
     iframe {
       width: 100%;
       height: 70vh;
@@ -50,7 +43,6 @@
       border-radius: 10px;
       background: white;
     }
-
     input {
       width: 100%;
       padding: 10px;
@@ -58,8 +50,40 @@
       border: none;
       margin-top: 8px;
       outline: none;
+      background: #eaeaea;
+      color: #0f1115;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
     }
-
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 13px;
+      color: #a7adba;
+    }
+    label:first-child {
+      margin-top: 0;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .checkbox-row input {
+      width: auto;
+      margin-top: 0;
+    }
+    .checkbox-row label {
+      margin-top: 0;
+      color: #eaeaea;
+      font-size: 14px;
+    }
+    .hint {
+      font-size: 12px;
+      color: #676d7a;
+      margin-top: 4px;
+    }
     button {
       margin-top: 10px;
       padding: 10px 14px;
@@ -68,24 +92,214 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #3a68e0;
+    }
+    #genStatus {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #7ee787;
+      display: none;
     }
   </style>
-
   <!-- Google CSE -->
   <script async src="https://cse.google.com/cse.js?cx=701a8b0d424fb4d14"></script>
 </head>
-
 <body>
-
   <!-- HEADER -->
   <div class="header">
     <div class="logo">
       <img src="SCOPE.png" alt="Scope Logo">
-      <button>I'm a useless button.</button>
     </div>
   </div>
 
-  <div>
-   <h2>Let's set up your install of Night Mode.</h2>
-      <!-- Put relevant questions here, request an answer, and you can request parameters too. The install won't have to guess, it will be personalized. Also, make the result downloadable as a .PY file. -->
+  <div class="card">
+    <h2 style="margin-top:0;">Let's set up your install of Night Mode.</h2>
+
+    <label for="adapterName">Wi-Fi adapter name (optional)</label>
+    <input type="text" id="adapterName" placeholder="Leave blank to auto-detect">
+    <div class="hint">Only fill this in if auto-detect picks the wrong adapter on your machine.</div>
+
+    <label for="timeoutSecs">Reconnect timeout after MAC change (seconds)</label>
+    <input type="number" id="timeoutSecs" value="25" min="5" max="120">
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="enableHotspot" checked>
+      <label for="enableHotspot">Enable mobile hotspot after randomizing MAC</label>
+    </div>
+
+    <label for="successMsg">Success message</label>
+    <input type="text" id="successMsg" value="You're all set for the night!">
+
+    <label for="failMsg">Failure message</label>
+    <input type="text" id="failMsg" value="Night Mode failed. Details:">
+
+    <button onclick="generateNightMode()">Generate my Night_Mode.py</button>
+    <div id="genStatus">Downloaded — check your browser's downloads folder.</div>
   </div>
+
+  <script>
+    function pyStringLiteral(s) {
+      // Safely embed arbitrary user text as a single-line Python string literal.
+      return '"' + String(s)
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\r?\n/g, '\\n') + '"';
+    }
+
+    function generateNightMode() {
+      const adapterName = document.getElementById('adapterName').value.trim();
+      const timeoutSecs = parseInt(document.getElementById('timeoutSecs').value, 10) || 25;
+      const enableHotspot = document.getElementById('enableHotspot').checked;
+      const successMsg = document.getElementById('successMsg').value || "You're all set for the night!";
+      const failMsg = document.getElementById('failMsg').value || "Night Mode failed. Details:";
+
+      const adapterFilterBlock = adapterName
+        ? `    $adapter = Get-NetAdapter | Where-Object { $_.Name -eq '${adapterName.replace(/'/g, "''")}' } | Select-Object -First 1\n    if (-not $adapter) { throw "Configured adapter '${adapterName.replace(/'/g, "''")}' not found or not active" }`
+        : `    $adapter = Get-NetAdapter | Where-Object {\n        $_.Status -eq 'Up' -and $_.InterfaceType -eq 71  # 71 = IEEE 802.11 (Wi-Fi)\n    } | Select-Object -First 1\n\n    if (-not $adapter) {\n        # Fallback: match by name in case InterfaceType filtering misses a driver\n        $adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Name -like '*Wi-Fi*' } | Select-Object -First 1\n    }\n    if (-not $adapter) { throw "No active Wi-Fi adapter found" }`;
+
+      const hotspotCall = enableHotspot ? "        enable_hotspot()\n" : "        # Hotspot step disabled during setup\n";
+
+      const script = `"""
+Randomizes your MAC address${enableHotspot ? ", enables Windows 11 Mobile Hotspot," : ""} and shows a popup.
+Generated by the Scope Night Mode setup wizard.
+
+REQUIREMENTS:
+- Run as Administrator (right-click -> Run as administrator, or launch from an
+  elevated terminal). MAC changes and adapter restarts need admin rights.
+- Your Wi-Fi adapter's driver must support a NetworkAddress override. Not all
+  drivers do -- if yours doesn't, the MAC step will fail and you'll get the
+  "do it manually" popup.
+"""
+
+import subprocess
+import ctypes
+import sys
+
+MB_ICONINFO = 0x40
+MB_ICONERROR = 0x10
+
+
+def show_popup(message, title="Notice", icon=MB_ICONINFO):
+    ctypes.windll.user32.MessageBoxW(0, message, title, icon)
+
+
+def run_ps(script):
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "Unknown PowerShell error")
+    return result.stdout
+
+
+def randomize_mac():
+    ps_script = r"""
+${adapterFilterBlock}
+
+    $bytes = 1..6 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }
+    $bytes[0] = ($bytes[0] -band 0xFE) -bor 0x02   # locally administered, unicast
+    $mac = ($bytes | ForEach-Object { "{0:X2}" -f $_ }) -join ''
+
+    $classGuid = '{4d36e972-e325-11ce-bfc1-08002be10318}'
+    $classRoot = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\$classGuid"
+    $ifGuid = $adapter.InterfaceGuid
+
+    $subKey = Get-ChildItem $classRoot -ErrorAction Stop | Where-Object {
+        (Get-ItemProperty -Path $_.PSPath -Name NetCfgInstanceId -ErrorAction SilentlyContinue).NetCfgInstanceId -eq $ifGuid
+    } | Select-Object -First 1
+
+    if (-not $subKey) {
+        throw "Could not locate this adapter's driver registry key (looked for NetCfgInstanceId $ifGuid under $classRoot)"
+    }
+
+    Set-ItemProperty -Path $subKey.PSPath -Name 'NetworkAddress' -Value $mac -Type String -Force
+
+    Disable-NetAdapter -Name $adapter.Name -Confirm:$false
+    Start-Sleep -Seconds 2
+    Enable-NetAdapter -Name $adapter.Name -Confirm:$false
+
+    $deadline = (Get-Date).AddSeconds(${timeoutSecs})
+    $profile = $null
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 1
+        try {
+            [Windows.Networking.Connectivity.NetworkInformation,Windows.Networking.Connectivity,ContentType=WindowsRuntime] | Out-Null
+            $p = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
+            if ($p) { $profile = $p; break }
+        } catch {
+            $profile = $null
+        }
+    }
+    if (-not $profile) { throw "Adapter did not reconnect with internet access within ${timeoutSecs}s after MAC change" }
+    """
+    run_ps(ps_script)
+
+
+def enable_hotspot():
+    ps_script = r"""
+    [Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager,Windows.Networking.NetworkOperators,ContentType=WindowsRuntime] | Out-Null
+    [Windows.Networking.Connectivity.NetworkInformation,Windows.Networking.Connectivity,ContentType=WindowsRuntime] | Out-Null
+    Add-Type -AssemblyName System.Runtime.WindowsRuntime
+
+    $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+        $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation\`1'
+    })[0]
+
+    function Await($WinRtTask, $ResultType) {
+        $asTask = $asTaskGeneric.MakeGenericMethod($ResultType)
+        $netTask = $asTask.Invoke($null, @($WinRtTask))
+        $netTask.Wait(-1) | Out-Null
+        $netTask.Result
+    }
+
+    $profile = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
+    if (-not $profile) { throw "No internet connection profile found" }
+
+    $tetheringManager = [Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager]::CreateFromConnectionProfile($profile)
+    $result = Await ($tetheringManager.StartTetheringAsync()) ([Windows.Networking.NetworkOperators.NetworkOperatorTetheringOperationResult])
+
+    if ($result.Status -ne 0) { throw "Tethering failed with status $($result.Status)" }
+    """
+    run_ps(ps_script)
+
+
+def main():
+    try:
+        randomize_mac()
+${hotspotCall}        show_popup(${pyStringLiteral(successMsg)}, "Success", MB_ICONINFO)
+    except Exception as e:
+        show_popup(
+            ${pyStringLiteral(failMsg + "\n\n")} +
+            f"{e}\\n\\n" +
+            "You may need to do this manually.",
+            "Uh oh",
+            MB_ICONERROR,
+        )
+        print(f"Error details: {e}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
+`;
+
+      const blob = new Blob([script], { type: 'text/x-python' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Night_Mode.py';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      const status = document.getElementById('genStatus');
+      status.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
